@@ -48,9 +48,24 @@ namespace eosio {
               uint64_t primary_key()const { return amount.symbol.code().raw(); }
            };
 
+         /*
+         * 
+         */
+         struct [[eosio::table, eosio::contract("eosio.token")]] vesting_info 
+         {
+            eosio::name    account;
+            eosio::asset   claimed;
+            eosio::asset   locked;
+            time_point     start_time;
+            time_point     end_time;
+
+            uint64_t primary_key() const { return account.value; }
+         };
+
           typedef eosio::multi_index< "reserves"_n, reserve > reserves;
           typedef eosio::multi_index< "stakestats"_n, staking_stats > stakestats;
           typedef eosio::multi_index< "stakeinfo"_n, stake_info > stakeinfo;
+          typedef eosio::multi_index< "vesting"_n, vesting_info> vestinginfo;
 //***
 
          /**
@@ -129,7 +144,22 @@ namespace eosio {
                         const name&  account);
          
 //***
+         /**
+          * Add vesting account`
+          * 
+          */
+         [[eosio::action]]
+         void addvestacct(const name&  acct, 
+                          const asset& quantity,
+                          const time_point& start,
+                          const time_point& end);
 
+         /**
+          * remove vesting account
+          * 
+          */
+         [[eosio::action]]
+         void rmvestacct(const name& acct);
 
          /**
           * Allows `ram_payer` to create an account `owner` with zero balance for
@@ -201,6 +231,8 @@ namespace eosio {
          using setstaked_action = eosio::action_wrapper<"setstaked"_n, &token::setstaked>;
          using updateclaim_action = eosio::action_wrapper<"updateclaim"_n, &token::updateclaim>;
          using close_action = eosio::action_wrapper<"close"_n, &token::close>;
+         using addvest_action = eosio::action_wrapper<"addvestacct"_n, &token::addvestacct>;
+         using rmvest_action = eosio::action_wrapper<"rmvestacct"_n, &token::rmvestacct>;
       private:
          struct [[eosio::table]] account {
             asset       balance;
@@ -238,7 +270,7 @@ namespace eosio {
          void sub_stake_info( const name& account, const name& receiver, const asset& value );
 
 //***
-
+         void check_vesting_info(const name& account, const asset& value);
    };
 
 }
