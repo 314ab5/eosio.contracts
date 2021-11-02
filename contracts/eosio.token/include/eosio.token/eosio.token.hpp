@@ -145,8 +145,19 @@ namespace eosio {
          
 //***
          /**
-          * Add vesting account`
+          * Add account to the vesting schedule.
           * 
+          * @param acct - the account to be added
+          * @param quantity - the initial number of locked tokens
+          * @param start - the start time of the vesting period
+          * @param end - the end time of the vesting period
+          * 
+          * @pre `acct` exists
+          * @pre `quantity` has a symbol of ORE
+          * @pre `end` is later than `start`
+          * @pre `acct` has an ORE balance of greater than or equal to `quantity`
+          * 
+          * @post `quantity` tokens will start to unlock at `start` time and unlock every second until `end`
           */
          [[eosio::action]]
          void addvestacct(const name&  acct, 
@@ -155,8 +166,11 @@ namespace eosio {
                           const time_point& end);
 
          /**
-          * remove vesting account
+          * Remove account from the vesting schedule
           * 
+          * @param acct - the account to remove
+          * 
+          * @pre `acct` is in the vesting schedule
           */
          [[eosio::action]]
          void rmvestacct(const name& acct);
