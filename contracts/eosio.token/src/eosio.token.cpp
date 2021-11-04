@@ -226,7 +226,8 @@ namespace eosio
    {
       vestinginfo vtable(get_self(), get_self().value);
       auto vacct = vtable.find(account.value);
-      if(vacct != vtable.end()) {
+      const auto ct = current_time_point();
+      if(vacct != vtable.end() && ct < vacct->end_time) {
          check(current_time_point() >= vacct->start_time, "vesting period has not started yet");
          // calculate liquid
          accounts acnt_bals(get_self(), account.value);
@@ -235,7 +236,7 @@ namespace eosio
          check(liquid_balance >= 0, "negative balance after transfer. should not happen");
          
          // calculate vested amount
-         const int64_t vested = vacct->locked.amount * double(current_time_point().sec_since_epoch() - vacct->start_time.sec_since_epoch()) / vacct->end_time.sec_since_epoch();
+         const int64_t vested = vacct->locked.amount * double(ct.sec_since_epoch() - vacct->start_time.sec_since_epoch()) / vacct->end_time.sec_since_epoch();
          
          // get transferable amount
          const int64_t transferable = vested - vacct->claimed.amount + liquid_balance;
