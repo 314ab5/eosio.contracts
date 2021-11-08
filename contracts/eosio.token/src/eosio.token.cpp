@@ -236,7 +236,7 @@ namespace eosio
          check(liquid_balance >= 0, "negative balance after transfer. should not happen");
          
          // calculate vested amount
-         const int64_t vested = vacct->locked.amount * double(ct.sec_since_epoch() - vacct->start_time.sec_since_epoch()) / vacct->end_time.sec_since_epoch();
+         const int64_t vested = vacct->locked.amount * double(ct.sec_since_epoch() - vacct->start_time.sec_since_epoch()) / (vacct->end_time.sec_since_epoch() - vacct->start_time.sec_since_epoch());
          
          // get transferable amount
          const int64_t transferable = vested - vacct->claimed.amount + liquid_balance;
