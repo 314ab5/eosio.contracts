@@ -48,16 +48,21 @@ namespace eosio {
               uint64_t primary_key()const { return amount.symbol.code().raw(); }
            };
 
-         /*
-         * 
-         */
-         struct [[eosio::table, eosio::contract("eosio.token")]] vesting_info 
-         {
-            eosio::name    account;
+         struct vesting_info {
             eosio::asset   claimed;
             eosio::asset   locked;
             time_point     start_time;
             time_point     end_time;
+         };
+
+         /*
+         * 
+         */
+         struct [[eosio::table, eosio::contract("eosio.token")]] vesting_acct_info {
+            eosio::name                account;
+            std::vector<vesting_info>  vesting;
+            eosio::asset               total_claimed;
+            eosio::asset               total_locked;
 
             uint64_t primary_key() const { return account.value; }
          };
@@ -65,7 +70,7 @@ namespace eosio {
           typedef eosio::multi_index< "reserves"_n, reserve > reserves;
           typedef eosio::multi_index< "stakestats"_n, staking_stats > stakestats;
           typedef eosio::multi_index< "stakeinfo"_n, stake_info > stakeinfo;
-          typedef eosio::multi_index< "vesting"_n, vesting_info> vestinginfo;
+          typedef eosio::multi_index< "vesting"_n, vesting_acct_info> vestinginfo;
 //***
 
          /**
@@ -169,11 +174,13 @@ namespace eosio {
           * Remove account from the vesting schedule
           * 
           * @param acct - the account to remove
+          * @param index - vesting information index
           * 
           * @pre `acct` is in the vesting schedule
+          * @pre `index` is less than the vector's size
           */
          [[eosio::action]]
-         void rmvestacct(const name& acct);
+         void rmvestacct(const name& acct, uint64_t index);
 
          /**
           * Allows `ram_payer` to create an account `owner` with zero balance for

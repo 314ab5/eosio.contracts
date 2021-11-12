@@ -189,66 +189,82 @@ namespace eosio
       // check account has quantity
       accounts from_acnts(get_self(), acct.value);
       const auto &from = from_acnts.get(quantity.symbol.code().raw(), "no balance object found for account");
-      check(from.balance.amount >= quantity.amount, "not enough tokens to vest");
+      // check(from.balance.amount >= quantity.amount, "not enough tokens to vest");
+
+      vesting_info vinfo = { {0, quantity.symbol}, quantity, start, end };
 
       // add to vesting schedule
       vestinginfo vtable(get_self(), get_self().value);
       auto vacct = vtable.find(acct.value);
       if(vacct != vtable.end()) {
+         auto pos = vacct->vesting.begin();
+         while(pos->start_time < start && pos != vacct->vesting.end()) {
+            pos++;
+         }
          // modify
-         vtable.modify( vacct, get_self(), [&](vesting_info& info){
-            info.locked = quantity;
-            info.start_time = start;
-            info.end_time = end;
-            info.claimed.amount = 0;
+         vtable.modify( vacct, get_self(), [&](vesting_acct_info& info){
+            info.total_locked += quantity;
+            info.vesting.insert(pos, vinfo);
          });
       } else {
-         // insert 
-         vtable.emplace( get_self(), [&](vesting_info& info){
+         vtable.emplace( get_self(), [&](vesting_acct_info& info){
+            // info.account = acct;
             info.account = acct;
-            info.locked = quantity;
-            info.claimed.symbol = quantity.symbol;
-            info.start_time = start;
-            info.end_time = end;
+            info.vesting = {vinfo};
+            info.total_locked = quantity;
+            info.total_claimed.symbol = quantity.symbol;
          });
       }
    }
 
-   void token::rmvestacct(const name& acct) 
+   void token::rmvestacct(const name& acct, uint64_t index) 
    {
       require_auth(get_self());
       vestinginfo vtable(get_self(), get_self().value);
-      const auto &vacct = vtable.get(acct.value, "No vesting info found");
-      vtable.erase(vacct);
+      auto vacct = vtable.find(acct.value);
+      check(vacct != vtable.end(), "cannot find account");
+      check(index <= vacct->vesting.size() - 1, "invalid index");
+      if(vacct->vesting.size() <= 1 && index == 0) {
+         // remove 
+         vtable.erase(vacct);
+      } else {
+         vtable.modify( vacct, get_self(), [&](vesting_acct_info& info) {
+            auto pos = info.vesting.begin() + index;
+            info.total_locked.amount -= pos->locked.amount;
+            // TODO check if this makes sense
+            info.total_claimed.amount -= pos->claimed.amount;
+            info.vesting.erase(pos);
+         });
+      }
    }
 
    void token::check_vesting_info(const name& account, const asset& value) 
    {
       vestinginfo vtable(get_self(), get_self().value);
       auto vacct = vtable.find(account.value);
-      const auto ct = current_time_point();
-      if(vacct != vtable.end() && ct < vacct->end_time) {
-         check(current_time_point() >= vacct->start_time, "vesting period has not started yet");
-         // calculate liquid
-         accounts acnt_bals(get_self(), account.value);
-         const auto &acct = acnt_bals.get(value.symbol.code().raw(), "no balance object found for account");
-         const int64_t liquid_balance = acct.balance.amount - (vacct->locked.amount - vacct->claimed.amount);
-         check(liquid_balance >= 0, "negative balance after transfer. should not happen");
+      auto ct = current_time_point();
+      if(vacct != vtable.end()) {
+         // check(current_time_point() >= vacct->start_time, "vesting period has not started yet");
+         // // calculate liquid
+         // accounts acnt_bals(get_self(), account.value);
+         // const auto &acct = acnt_bals.get(value.symbol.code().raw(), "no balance object found for account");
+         // const int64_t liquid_balance = acct.balance.amount - (vacct->locked.amount - vacct->claimed.amount);
+         // check(liquid_balance >= 0, "negative balance after transfer. should not happen");
          
-         // calculate vested amount
-         const int64_t vested = vacct->locked.amount * double(ct.sec_since_epoch() - vacct->start_time.sec_since_epoch()) / (vacct->end_time.sec_since_epoch() - vacct->start_time.sec_since_epoch());
+         // // calculate vested amount
+         // const int64_t vested = vacct->locked.amount * double(ct.sec_since_epoch() - vacct->start_time.sec_since_epoch()) / (vacct->end_time.sec_since_epoch() - vacct->start_time.sec_since_epoch());
          
-         // get transferable amount
-         const int64_t transferable = vested - vacct->claimed.amount + liquid_balance;
-         // eosio::print(account.to_string() + " liquid_balance: " + std::to_string(liquid_balance) + " vested: " + std::to_string(vested) + " transferable: " + std::to_string(transferable));
-         check(transferable >= value.amount, "not enough vested or liquid can only send: " + asset{transferable, value.symbol}.to_string());
+         // // get transferable amount
+         // const int64_t transferable = vested - vacct->claimed.amount + liquid_balance;
+         // // eosio::print(account.to_string() + " liquid_balance: " + std::to_string(liquid_balance) + " vested: " + std::to_string(vested) + " transferable: " + std::to_string(transferable));
+         // check(transferable >= value.amount, "not enough vested or liquid can only send: " + asset{transferable, value.symbol}.to_string());
 
-         // update claimed
-         if(value.amount > liquid_balance) {
-            vtable.modify( vacct, get_self(), [&](vesting_info& info){
-               info.claimed.amount += value.amount - liquid_balance;
-            });
-         }
+         // // update claimed
+         // if(value.amount > liquid_balance) {
+         //    vtable.modify( vacct, get_self(), [&](vesting_info& info){
+         //       info.claimed.amount += value.amount - liquid_balance;
+         //    });
+         // }
       }
    }
 
