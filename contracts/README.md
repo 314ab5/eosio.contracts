@@ -24,4 +24,4 @@ In addition to standard eosio.token contract, provides stake & unstake actions, 
 
 * **chngstaker()** action added. Only callable by current staker. A shortcut for a staker to transfer the stakership of an account.
 
-* **addvestacct** & **rmvestacct** actions added. Only callable by `eosio.token` these actions will add or remove accounts from the `vesting` table. Accounts in the `vesting` table can only transfer locked tokens in a cadence of `((current_time - start_time) / end_time) * total_locked_tokens`.
+* **addvestacct** & **rmvestacct** actions added. Only callable by `eosio.token` these actions will add or remove accounts from the `vesting` table. Accounts in the `vesting` table can only transfer locked tokens in a cadence of `( (current_time - start_time) / (end_time - start_time) ) * total_locked_tokens`.
