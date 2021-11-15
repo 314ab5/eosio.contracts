@@ -189,7 +189,6 @@ namespace eosio
       // check account has quantity
       accounts from_acnts(get_self(), acct.value);
       const auto &from = from_acnts.get(quantity.symbol.code().raw(), "no balance object found for account");
-      // check(from.balance.amount >= quantity.amount, "not enough tokens to vest");
 
       vesting_info vinfo = { {0, quantity.symbol}, quantity, start, end };
 
@@ -197,6 +196,7 @@ namespace eosio
       vestinginfo vtable(get_self(), get_self().value);
       auto vacct = vtable.find(acct.value);
       if(vacct != vtable.end()) {
+         check(from.balance.amount >= quantity.amount + vacct->total_locked.amount, "not enough tokens to vest");
          auto pos = vacct->vesting.begin();
          while(pos->start_time < start && pos != vacct->vesting.end()) {
             pos++;
