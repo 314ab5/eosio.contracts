@@ -262,7 +262,7 @@ namespace eosio
             }
             // get transferable amount
             const int64_t transferable = vested - claimed + liquid_balance;
-            eosio::print(account.to_string() + " claimed: " + std::to_string(claimed) + " liquid_balance: " + std::to_string(liquid_balance) + " vested: " + std::to_string(vested) + " transferable: " + std::to_string(transferable));
+            // eosio::print(account.to_string() + " claimed: " + std::to_string(claimed) + " liquid_balance: " + std::to_string(liquid_balance) + " vested: " + std::to_string(vested) + " transferable: " + std::to_string(transferable));
             check(transferable >= value.amount, "not enough vested or liquid can only send: " + asset{transferable, value.symbol}.to_string());
             // update info
             vtable.modify(vacct, get_self(), [&](vesting_acct_info& info){
@@ -272,6 +272,8 @@ namespace eosio
                   int64_t claimed_left = vesting[i].locked.amount - vesting[i].claimed.amount;
                   if(claimed_left > new_claimed) {
                      vesting[i].claimed.amount += new_claimed;
+                     // set to zero
+                     new_claimed = 0;
                   } else {
                      vesting[i].claimed.amount = vesting[i].locked.amount;
                      new_claimed -= claimed_left;
