@@ -225,7 +225,7 @@ namespace eosio
       check(vacct != vtable.end(), "cannot find account");
       check(index <= vacct->vesting.size() - 1, "invalid index");
       // remove vesting account info
-      if(vacct->vesting.size() == 0 && index == 0) {
+      if(vacct->vesting.size() == 1 && index == 0) {
          // remove 
          vtable.erase(vacct);
       } else {
